@@ -134,12 +134,27 @@ final settingsProvider = StreamProvider<AppSettings>((ref) => ref
     .watch(AppSettings.docId)
     .map((s) => s ?? const AppSettings()));
 
+/// The current calendar day. Refreshed by the app at midnight and on
+/// resume, so screens left open overnight move on to the new day.
+class TodayKey extends Notifier<String> {
+  @override
+  String build() => dayKey(ref.read(clockProvider)());
+
+  void refresh() {
+    final key = dayKey(ref.read(clockProvider)());
+    if (key != state) state = key;
+  }
+}
+
+final todayKeyProvider = NotifierProvider<TodayKey, String>(TodayKey.new);
+
 /// Today's routine, or an empty one if nothing was recorded yet.
 final todayRoutineProvider = StreamProvider<DailyRoutine>((ref) {
-  final now = ref.watch(clockProvider)();
+  final key = ref.watch(todayKeyProvider);
+  final now = ref.read(clockProvider)();
   return ref
       .watch(routineRepoProvider)
-      .watch(dayKey(now))
+      .watch(key)
       .map((r) => r ?? DailyRoutine.empty(now));
 });
 

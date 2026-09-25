@@ -137,25 +137,28 @@ class JournalTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (entry.problem != null)
-                    Flexible(
-                      child: ProblemBadge(entry.problem!,
-                          subtype: entry.subtype),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        if (entry.problem != null)
+                          ProblemBadge(entry.problem!, subtype: entry.subtype),
+                        if (entry.mistakeType != null)
+                          Tooltip(
+                            message: entry.mistakeType!.mistakeLabel,
+                            child: BandBadge(entry.mistakeType!, small: true),
+                          ),
+                        if (entry.intensity != null)
+                          Text('${entry.intensity}/10',
+                              style: theme.textTheme.labelSmall),
+                      ],
                     ),
-                  if (entry.mistakeType != null) ...[
-                    const SizedBox(width: 6),
-                    Tooltip(
-                      message: entry.mistakeType!.mistakeLabel,
-                      child: BandBadge(entry.mistakeType!, small: true),
-                    ),
-                  ],
-                  if (entry.intensity != null) ...[
-                    const SizedBox(width: 6),
-                    Text('${entry.intensity}/10',
-                        style: theme.textTheme.labelSmall),
-                  ],
-                  const Spacer(),
+                  ),
+                  const SizedBox(width: 8),
                   Text(formatDateTime(entry.createdAt),
                       style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant)),

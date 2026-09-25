@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +22,7 @@ import 'features/onboarding/onboarding_screen.dart';
 import 'features/reset/reset_screen.dart';
 import 'features/routine/check_in_ticker.dart';
 import 'features/routine/routine_screen.dart';
+import 'data/providers.dart';
 import 'domain/routine.dart';
 import 'features/settings/settings_screen.dart';
 import 'services/auto_backup.dart';
@@ -135,26 +138,45 @@ class MentalGameApp extends ConsumerStatefulWidget {
 class _MentalGameAppState extends ConsumerState<MentalGameApp>
     with WidgetsBindingObserver {
   bool _backingUp = false;
+  Timer? _midnight;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _backup());
+    _scheduleMidnight();
   }
 
   @override
   void dispose() {
+    _midnight?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  /// Leaving the app is the natural moment to save: nothing is mid-edit.
+  /// Rolls "today" over at midnight for screens left open overnight.
+  void _scheduleMidnight() {
+    _midnight?.cancel();
+    final now = DateTime.now();
+    final next = DateTime(now.year, now.month, now.day + 1);
+    _midnight = Timer(next.difference(now) + const Duration(seconds: 1), () {
+      ref.read(todayKeyProvider.notifier).refresh();
+      _scheduleMidnight();
+    });
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden) {
-      _backup();
+    switch (state) {
+      // Leaving the app is the natural moment to save: nothing is mid-edit.
+      case AppLifecycleState.paused || AppLifecycleState.hidden:
+        _backup();
+      case AppLifecycleState.resumed:
+        ref.read(todayKeyProvider.notifier).refresh();
+        _scheduleMidnight();
+      default:
+        break;
     }
   }
 

@@ -85,19 +85,18 @@ class SessionTile extends StatelessWidget {
       child: ListTile(
         leading: BandBadge(settings.bandFor(session.score)),
         title: Text(formatDay(session.date)),
-        subtitle: session.notes.isEmpty
+        subtitle: session.notes.isEmpty && session.carryOver == 0
             ? null
-            : Text(session.notes, maxLines: 1, overflow: TextOverflow.ellipsis),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text('${session.score}', style: theme.textTheme.titleMedium),
-            if (session.carryOver > 0)
-              Text('+${session.carryOver}% carried',
-                  style: theme.textTheme.labelSmall),
-          ],
-        ),
+            : Text(
+                [
+                  if (session.carryOver > 0)
+                    '${session.carryOver}% carried over',
+                  if (session.notes.isNotEmpty) session.notes,
+                ].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+        trailing: Text('${session.score}', style: theme.textTheme.titleMedium),
         onTap: () => context.push('/game/session?id=${session.id}'),
       ),
     );

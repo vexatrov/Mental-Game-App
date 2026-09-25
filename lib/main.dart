@@ -15,7 +15,13 @@ import 'ui/locale.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDateLocale();
-  final db = await openAppDatabase();
+  final Database db;
+  try {
+    db = await openAppDatabase();
+  } catch (e) {
+    runApp(StartupErrorApp(error: e));
+    return;
+  }
   final reminders = platformReminderScheduler();
   final onboarded =
       await Stores.ref(Stores.meta).record('onboarding').get(db) != null;
@@ -33,4 +39,51 @@ Future<void> main() async {
     container: container,
     child: const MentalGameApp(),
   ));
+}
+
+/// Shown instead of the app when the local database can't be opened, so the
+/// user sees what happened rather than a blank screen.
+class StartupErrorApp extends StatelessWidget {
+  const StartupErrorApp({super.key, required this.error});
+
+  final Object error;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: MentalGameApp.seed),
+        useMaterial3: true,
+      ),
+      home: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.error_outline, size: 48),
+                const SizedBox(height: 16),
+                const Text(
+                  'Your notes couldn\'t be opened',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Nothing has been deleted. Try closing the app completely and '
+                  'opening it again. If this keeps happening, reinstalling and '
+                  'restoring from your automatic backup file will bring your '
+                  'notes back.',
+                ),
+                const SizedBox(height: 16),
+                SelectableText('Details: $error',
+                    style: const TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

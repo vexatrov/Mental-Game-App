@@ -57,7 +57,7 @@ void main() {
     await tester.tap(find.text('Log'));
     await tester.pumpAndSettle();
     expect(find.text('Log session'), findsOneWidget);
-    expect(find.text('50'), findsOneWidget);
+    expect(find.text('50 / 100', findRichText: true), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('saveSession')));
     await tester.pumpAndSettle();

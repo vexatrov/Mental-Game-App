@@ -115,6 +115,17 @@ class _ResetScreenState extends ConsumerState<ResetScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    // The system back gesture steps back through the flow before leaving it.
+    return PopScope(
+      canPop: _step == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _step > 0) _go(_step - 1);
+      },
+      child: _scaffold(context, theme),
+    );
+  }
+
+  Widget _scaffold(BuildContext context, ThemeData theme) {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(

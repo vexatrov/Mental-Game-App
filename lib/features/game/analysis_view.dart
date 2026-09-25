@@ -66,15 +66,17 @@ class AnalysisView extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Chip(
-                  avatar: Icon(
-                      current.isLocked(now) ? Icons.lock_clock : Icons.lock_open,
-                      size: 16),
-                  label: Text(current.isLocked(now)
-                      ? 'v${current.version} · stable until ${formatDay(current.lockedUntil)}'
-                      : 'v${current.version} · ready to revise'),
+                Icon(current.isLocked(now) ? Icons.lock_clock : Icons.lock_open,
+                    size: 18, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    current.isLocked(now)
+                        ? 'v${current.version} · stable until ${formatDay(current.lockedUntil)}'
+                        : 'v${current.version} · ready to revise',
+                    style: theme.textTheme.labelLarge,
+                  ),
                 ),
-                const Spacer(),
                 IconButton.filledTonal(
                   tooltip: 'Edit',
                   onPressed: () => _edit(context, ref, current),

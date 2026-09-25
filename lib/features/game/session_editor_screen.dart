@@ -145,14 +145,18 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
                   onPressed: _pickDate, child: const Text('Change')),
             ),
             const SectionHeader('Decision quality'),
-            Row(
+            Wrap(
+              spacing: 16,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 BandBadge(band, large: true),
-                const SizedBox(width: 16),
-                Text('${session.score}',
-                    style: theme.textTheme.displaySmall
-                        ?.copyWith(fontWeight: FontWeight.w600)),
-                Text(' / 100', style: theme.textTheme.titleMedium),
+                Text.rich(TextSpan(children: [
+                  TextSpan(
+                      text: '${session.score}',
+                      style: theme.textTheme.displaySmall
+                          ?.copyWith(fontWeight: FontWeight.w600)),
+                  TextSpan(text: ' / 100', style: theme.textTheme.titleMedium),
+                ])),
               ],
             ),
             Slider(

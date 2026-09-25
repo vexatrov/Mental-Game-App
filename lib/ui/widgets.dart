@@ -93,19 +93,20 @@ class ProblemBadge extends StatelessWidget {
         color: problem.color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(problem.icon, size: 14, color: problem.color),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              text,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelSmall,
+      child: Text.rich(
+        TextSpan(children: [
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Icon(problem.icon, size: 14, color: problem.color),
             ),
           ),
-        ],
+          TextSpan(text: text),
+        ]),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelSmall,
       ),
     );
   }
@@ -228,7 +229,7 @@ class SectionHeader extends StatelessWidget {
                     .titleSmall
                     ?.copyWith(color: Theme.of(context).colorScheme.primary)),
           ),
-          ?trailing,
+          if (trailing != null) Flexible(child: trailing!),
         ],
       ),
     );
