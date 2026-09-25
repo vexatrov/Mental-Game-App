@@ -12,6 +12,11 @@ jobs:
     permissions:
       # Needed to publish the APKs as a GitHub Release.
       contents: write
+    env:
+      # Set once the Play upload key is added as repository secrets
+      # (see docs/play-store/LAUNCH.md). Without it, builds use a throwaway
+      # debug key and no app bundle is made.
+      HAS_UPLOAD_KEY: ${{ secrets.KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,13 +35,29 @@ jobs:
       - run: flutter analyze
       - run: flutter test
 
-      # Signed with the debug key: fine for sideloading onto your own phone.
-      - run: flutter build apk --release --split-per-abi
+      - name: Set up upload key
+        if: env.HAS_UPLOAD_KEY == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+          printf 'storeFile=upload-keystore.jks\nkeyAlias=upload\nstorePassword=%s\nkeyPassword=%s\n' \
+            "$KEYSTORE_PASSWORD" "$KEYSTORE_PASSWORD" > android/key.properties
+
+      # The run number is the versionCode, so every build can update the last.
+      - run: flutter build apk --release --split-per-abi --build-number=${{ github.run_number }}
+
+      - name: Build app bundle for Google Play
+        if: env.HAS_UPLOAD_KEY == 'true'
+        run: flutter build appbundle --release --build-number=${{ github.run_number }}
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mental-game-apk
-          path: build/app/outputs/flutter-apk/*-release.apk
+          name: traders-mind-build
+          path: |
+            build/app/outputs/flutter-apk/*-release.apk
+            build/app/outputs/bundle/release/app-release.aab
 
       # A plain .apk behind a stable link is far easier to install from a
       # phone than a zipped artifact:
@@ -46,10 +67,13 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: Mental Game build ${{ github.run_number }}
+          name: Trader's Mind build ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           make_latest: true
           body: |
             Install on Android: download `app-arm64-v8a-release.apk` (fits most phones) and open it.
             Older 32-bit phones: `app-armeabi-v7a-release.apk`.
-          files: build/app/outputs/flutter-apk/*-release.apk
+            `app-release.aab` (when present) is the file to upload to Google Play; it can't be installed directly.
+          files: |
+            build/app/outputs/flutter-apk/*-release.apk
+            build/app/outputs/bundle/release/app-release.aab

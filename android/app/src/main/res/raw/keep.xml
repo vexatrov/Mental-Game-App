@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The notification icon is only named from Dart, so resource shrinking
+     can't see it's used. Without this, release builds drop it and check-in
+     reminders silently fail to show. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_notify" />
