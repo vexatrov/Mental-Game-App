@@ -25,7 +25,11 @@ An Android notebook for readers of *The Mental Game of Trading* by Jared Tendler
 
 ## Install on your phone
 
-Every push builds APKs in GitHub Actions: open **Actions → Android → latest run → Artifacts → mental-game-apk**. Most phones need `app-arm64-v8a-release.apk`. Allow installs from unknown sources when Android asks.
+Open this link on your Android phone and install the file it downloads:
+
+**https://github.com/vexatrov/Mental-Game-App/releases/latest/download/app-arm64-v8a-release.apk**
+
+It always points to the newest build. Android will ask you to allow installs from your browser the first time. For older 32-bit phones, use `app-armeabi-v7a-release.apk` from the [latest release](https://github.com/vexatrov/Mental-Game-App/releases/latest) instead.
 
 ## Development
 
