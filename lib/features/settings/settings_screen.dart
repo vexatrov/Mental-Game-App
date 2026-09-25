@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -29,7 +30,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       .showSnackBar(SnackBar(content: Text(message)));
 
   String _fileName() =>
-      'mental-game-backup-${DateFormat('yyyy-MM-dd').format(ref.read(clockProvider)())}.json';
+      'traders-mind-backup-${DateFormat('yyyy-MM-dd').format(ref.read(clockProvider)())}.json';
 
   Future<Uint8List> _backupBytes() async => Uint8List.fromList(
       utf8.encode(await ref.read(backupServiceProvider).exportJson()));
@@ -56,7 +57,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           XFile.fromData(await _backupBytes(), mimeType: 'application/json'),
         ],
         fileNameOverrides: [_fileName()],
-        subject: 'Mental Game backup',
+        subject: "Trader's Mind backup",
       ));
     } catch (e) {
       _snack('Could not share the backup: $e');
@@ -247,11 +248,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             onTap: _restore,
           ),
           const SectionHeader('About'),
-          Text(
-            'A companion notebook for readers of "The Mental Game of Trading" by '
-            'Jared Tendler. The app is not affiliated with the author or '
-            'publisher. Read the book for the full system.',
-            style: theme.textTheme.bodySmall,
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.info_outline),
+            title: const Text('About Trader\'s Mind'),
+            subtitle: const Text('Credits, the book, privacy, disclaimers'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/about'),
           ),
         ],
       ),

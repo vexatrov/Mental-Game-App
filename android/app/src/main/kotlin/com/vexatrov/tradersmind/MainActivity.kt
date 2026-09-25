@@ -1,4 +1,4 @@
-package com.mentalgame.mental_game
+package com.vexatrov.tradersmind
 
 import android.app.Activity
 import android.content.Intent

@@ -41,7 +41,7 @@ class HomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mental Game'),
+        title: const Text("Trader's Mind"),
         actions: [
           IconButton(
             tooltip: 'Settings & backup',

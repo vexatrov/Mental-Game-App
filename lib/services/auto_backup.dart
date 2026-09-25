@@ -97,7 +97,7 @@ class AutoBackupService {
 
   final Ref ref;
 
-  static const fileName = 'mental-game-backup.json';
+  static const fileName = 'traders-mind-backup.json';
 
   static const _notPersistedWarning =
       'This location only allows one-off saves. Choose another place '

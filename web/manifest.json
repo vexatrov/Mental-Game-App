@@ -1,11 +1,11 @@
 {
-    "name": "Mental Game",
-    "short_name": "Mental Game",
+    "name": "Trader's Mind",
+    "short_name": "Trader's Mind",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#2E7D74",
     "theme_color": "#2E7D74",
-    "description": "A mental game notebook for traders.",
+    "description": "A daily notebook for your trading psychology.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

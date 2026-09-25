@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'features/about/about_screen.dart';
 import 'features/drill/drill_screen.dart';
 import 'features/game/analysis_editor_screen.dart';
 import 'features/game/game_screen.dart';
@@ -96,6 +97,10 @@ GoRouter buildRouter() {
             RoutineScreen(phase: RoutinePhase.parse(q(s, 'phase'))),
       ),
       GoRoute(
+        path: '/about',
+        builder: (_, _) => const AboutScreen(),
+      ),
+      GoRoute(
         path: '/settings',
         builder: (_, _) => const SettingsScreen(),
       ),
@@ -178,7 +183,7 @@ class _MentalGameAppState extends ConsumerState<MentalGameApp>
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Mental Game',
+      title: "Trader's Mind",
       debugShowCheckedModeBanner: false,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
