@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/models/game.dart';
 import '../../data/models/journal_entry.dart';
 import '../../data/providers.dart';
 import '../../domain/problem_types.dart';
@@ -17,6 +18,7 @@ class JournalScreen extends ConsumerStatefulWidget {
 
 class _JournalScreenState extends ConsumerState<JournalScreen> {
   ProblemType? _filter;
+  GameLevel? _mistakeFilter;
   bool _quickOnly = false;
 
   @override
@@ -51,6 +53,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
           final visible = all
               .where((e) => _filter == null || e.problem == _filter)
               .where((e) => !_quickOnly || e.isQuick)
+              .where((e) =>
+                  _mistakeFilter == null || e.mistakeType == _mistakeFilter)
               .toList();
           return CustomScrollView(
             slivers: [
@@ -89,6 +93,16 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
             onSelected: (v) => setState(() => _quickOnly = v),
           ),
           const SizedBox(width: 8),
+          for (final level in GameLevel.values.reversed) ...[
+            FilterChip(
+              avatar: BandBadge(level),
+              label: Text(level.mistakeLabel.split(' ').first),
+              selected: _mistakeFilter == level,
+              onSelected: (v) =>
+                  setState(() => _mistakeFilter = v ? level : null),
+            ),
+            const SizedBox(width: 8),
+          ],
           for (final p in ProblemType.values) ...[
             FilterChip(
               avatar: Icon(p.icon, size: 16, color: p.color),
@@ -129,6 +143,13 @@ class JournalTile extends StatelessWidget {
                       child: ProblemBadge(entry.problem!,
                           subtype: entry.subtype),
                     ),
+                  if (entry.mistakeType != null) ...[
+                    const SizedBox(width: 6),
+                    Tooltip(
+                      message: entry.mistakeType!.mistakeLabel,
+                      child: BandBadge(entry.mistakeType!, small: true),
+                    ),
+                  ],
                   if (entry.intensity != null) ...[
                     const SizedBox(width: 6),
                     Text('${entry.intensity}/10',

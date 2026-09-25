@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/models/journal_entry.dart';
 import '../../data/providers.dart';
@@ -66,6 +67,15 @@ class _QuickNoteSheetState extends ConsumerState<_QuickNoteSheet> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Note saved. Expand it after the session.')),
     );
+  }
+
+  Future<void> _reset() async {
+    await ref.read(routineActionsProvider).recordCheckIn(flagged: true);
+    if (!mounted) return;
+    final router = GoRouter.of(context);
+    Navigator.pop(context);
+    router.push(
+        _problem == null ? '/reset' : '/reset?problem=${_problem!.name}');
   }
 
   Future<void> _allClear() async {
@@ -145,11 +155,26 @@ class _QuickNoteSheetState extends ConsumerState<_QuickNoteSheet> {
           ),
           if (widget.checkIn) ...[
             const SizedBox(height: 8),
-            OutlinedButton.icon(
-              key: const Key('checkInClear'),
-              onPressed: _allClear,
-              icon: const Icon(Icons.sentiment_satisfied_alt),
-              label: const Text('All clear'),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: const Key('checkInClear'),
+                    onPressed: _allClear,
+                    icon: const Icon(Icons.sentiment_satisfied_alt),
+                    label: const Text('All clear'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    key: const Key('checkInReset'),
+                    onPressed: _reset,
+                    icon: const Icon(Icons.bolt),
+                    label: const Text('Reset'),
+                  ),
+                ),
+              ],
             ),
           ],
         ],

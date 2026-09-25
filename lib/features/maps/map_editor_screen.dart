@@ -260,7 +260,9 @@ String _idealHint(EmotionMap map) => switch (map.scale) {
         'Optional: what trading feels like when this is not a problem',
     };
 
-class _LevelRow extends StatelessWidget {
+/// One level of the map. Empty levels collapse to a single line so a new
+/// map isn't a wall of 20 fields; the scale's anchor levels stay open.
+class _LevelRow extends StatefulWidget {
   const _LevelRow({
     required this.level,
     required this.scale,
@@ -275,61 +277,115 @@ class _LevelRow extends StatelessWidget {
   final TextEditingController technical;
   final bool readOnly;
 
-  Widget _field(String label, TextEditingController c, String key) => TextField(
-        key: Key('map${key}_$level'),
+  @override
+  State<_LevelRow> createState() => _LevelRowState();
+}
+
+class _LevelRowState extends State<_LevelRow> {
+  late bool _expanded = !_isEmpty || widget.scale.tagFor(widget.level) != null;
+  bool _focusNew = false;
+
+  bool get _isEmpty =>
+      widget.mental.text.trim().isEmpty && widget.technical.text.trim().isEmpty;
+
+  Widget _field(String label, TextEditingController c, String key,
+          {bool autofocus = false}) =>
+      TextField(
+        key: Key('map${key}_${widget.level}'),
         controller: c,
-        readOnly: readOnly,
+        readOnly: widget.readOnly,
+        autofocus: autofocus,
         minLines: 1,
         maxLines: null,
         textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(labelText: label, isDense: true),
       );
 
+  Widget _badge(BuildContext context, Color color, String? tag) => SizedBox(
+        width: 44,
+        child: Column(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              child: Text('${widget.level}',
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+            if (tag != null) ...[
+              const SizedBox(height: 4),
+              Text(tag,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(fontSize: 9, color: color)),
+            ],
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
-    final color = scale.color(level);
-    final tag = scale.tagFor(level);
+    final theme = Theme.of(context);
+    final color = widget.scale.color(widget.level);
+    final tag = widget.scale.tagFor(widget.level);
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(14),
+      side: BorderSide(color: color.withValues(alpha: 0.6)),
+    );
+
+    if (!_expanded) {
+      return Card(
+        margin: const EdgeInsets.only(bottom: 10),
+        shape: shape,
+        child: InkWell(
+          key: Key('mapLevel_${widget.level}'),
+          borderRadius: BorderRadius.circular(14),
+          onTap: widget.readOnly
+              ? null
+              : () => setState(() {
+                    _expanded = true;
+                    _focusNew = true;
+                  }),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                _badge(context, color, tag),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.readOnly ? '–' : 'Tap to describe level ${widget.level}',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ),
+                if (!widget.readOnly)
+                  Icon(Icons.add, color: theme.colorScheme.onSurfaceVariant),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final fields = [
-      _field('Mental & emotional', mental, 'Mental'),
-      _field('Technical', technical, 'Technical'),
+      _field('Mental & emotional', widget.mental, 'Mental',
+          autofocus: _focusNew),
+      _field('Technical', widget.technical, 'Technical'),
     ];
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: color.withValues(alpha: 0.6)),
-      ),
+      shape: shape,
       child: Padding(
         padding: const EdgeInsets.all(10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 44,
-              child: Column(
-                children: [
-                  Container(
-                    width: 34,
-                    height: 34,
-                    alignment: Alignment.center,
-                    decoration:
-                        BoxDecoration(color: color, shape: BoxShape.circle),
-                    child: Text('$level',
-                        style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
-                  ),
-                  if (tag != null) ...[
-                    const SizedBox(height: 4),
-                    Text(tag,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context)
-                            .textTheme
-                            .labelSmall
-                            ?.copyWith(fontSize: 9, color: color)),
-                  ],
-                ],
-              ),
-            ),
+            _badge(context, color, tag),
             const SizedBox(width: 10),
             Expanded(
               child: LayoutBuilder(

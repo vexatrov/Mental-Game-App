@@ -7,6 +7,7 @@ import '../domain/routine.dart';
 import '../services/reminders.dart';
 import 'models/app_settings.dart';
 import 'models/daily_routine.dart';
+import 'models/drill_card.dart';
 import 'models/emotion_map.dart';
 import 'models/game.dart';
 import 'models/journal_entry.dart';
@@ -72,6 +73,16 @@ final routineRepoProvider = Provider((ref) => DocRepository<DailyRoutine>(
       DailyRoutine.fromJson,
       sortField: 'day',
     ));
+
+final drillRepoProvider = Provider((ref) => DocRepository<DrillCard>(
+      ref.watch(databaseProvider),
+      Stores.drills,
+      DrillCard.fromJson,
+      sortField: 'id',
+    ));
+
+final drillCardsProvider = StreamProvider<List<DrillCard>>(
+    (ref) => ref.watch(drillRepoProvider).watchAll());
 
 /// Overridden in `main` with the platform scheduler on Android.
 final reminderSchedulerProvider =
@@ -183,6 +194,12 @@ class RoutineActions {
         checkIns: r.checkIns + 1,
         flaggedCheckIns: r.flaggedCheckIns + (flagged ? 1 : 0),
       ));
+
+  Future<void> recordDrill() =>
+      _update((r) => r.copyWith(drills: r.drills + 1));
+
+  Future<void> recordReset() =>
+      _update((r) => r.copyWith(resets: r.resets + 1));
 
   /// Starts check-ins every [minutes] for [hours]. Returns false if the OS
   /// refused notification permission (the in-app prompt still runs).

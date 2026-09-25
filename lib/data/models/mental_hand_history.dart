@@ -65,6 +65,7 @@ class MentalHandHistory implements Doc {
     List<MhhReason>? reasons,
     this.status = MhhStatus.draft,
     this.linkedEntryIds = const [],
+    this.logicLine = '',
   })  : updatedAt = updatedAt ?? createdAt,
         reasons = reasons ?? const [MhhReason()];
 
@@ -79,6 +80,10 @@ class MentalHandHistory implements Doc {
   final List<MhhReason> reasons;
   final MhhStatus status;
   final List<String> linkedEntryIds;
+
+  /// A short line distilled from the correction, said to yourself in the
+  /// moment a reaction is triggered.
+  final String logicLine;
 
   String get title {
     final firstLine = description.trim().split('\n').first;
@@ -106,6 +111,7 @@ class MentalHandHistory implements Doc {
     List<MhhReason>? reasons,
     MhhStatus? status,
     List<String>? linkedEntryIds,
+    String? logicLine,
   }) =>
       MentalHandHistory(
         id: id,
@@ -116,6 +122,7 @@ class MentalHandHistory implements Doc {
         reasons: reasons ?? this.reasons,
         status: status ?? this.status,
         linkedEntryIds: linkedEntryIds ?? this.linkedEntryIds,
+        logicLine: logicLine ?? this.logicLine,
       );
 
   @override
@@ -128,6 +135,7 @@ class MentalHandHistory implements Doc {
         'reasons': [for (final r in reasons) r.toJson()],
         'status': status.name,
         'linkedEntryIds': linkedEntryIds,
+        'logicLine': logicLine,
       };
 
   factory MentalHandHistory.fromJson(Map<String, Object?> json) {
@@ -147,6 +155,7 @@ class MentalHandHistory implements Doc {
           ? MhhStatus.solid
           : MhhStatus.draft,
       linkedEntryIds: readStringList(json['linkedEntryIds']),
+      logicLine: readString(json['logicLine']),
     );
   }
 }

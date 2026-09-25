@@ -112,15 +112,16 @@ class ProblemBadge extends StatelessWidget {
 }
 
 class BandBadge extends StatelessWidget {
-  const BandBadge(this.level, {super.key, this.large = false});
+  const BandBadge(this.level, {super.key, this.large = false, this.small = false});
 
   final GameLevel level;
   final bool large;
+  final bool small;
 
   @override
   Widget build(BuildContext context) {
     final color = bandColor(level, Theme.of(context).colorScheme);
-    final size = large ? 44.0 : 30.0;
+    final size = large ? 44.0 : small ? 22.0 : 30.0;
     return Container(
       width: size,
       height: size,
@@ -134,7 +135,7 @@ class BandBadge extends StatelessWidget {
         level.letter,
         style: TextStyle(
           fontWeight: FontWeight.bold,
-          fontSize: large ? 20 : 14,
+          fontSize: large ? 20 : small ? 11 : 14,
           color: color,
         ),
       ),

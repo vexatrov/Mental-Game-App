@@ -12,6 +12,11 @@ abstract final class Stores {
   static const sessions = 'sessions';
   static const settings = 'settings';
   static const routines = 'routines';
+  static const drills = 'drill_cards';
+
+  /// Device-specific state (e.g. the auto-backup target). Never exported,
+  /// so a restore on another phone doesn't inherit it.
+  static const meta = 'meta';
 
   static const all = [
     journal,
@@ -20,6 +25,7 @@ abstract final class Stores {
     analyses,
     sessions,
     routines,
+    drills,
     settings,
   ];
 

@@ -17,6 +17,8 @@ class DailyRoutine implements Doc {
     this.timerStart,
     this.timerEnd,
     this.timerMinutes = 30,
+    this.drills = 0,
+    this.resets = 0,
   });
 
   factory DailyRoutine.empty(DateTime now) =>
@@ -44,6 +46,12 @@ class DailyRoutine implements Doc {
   final DateTime? timerEnd;
   final int timerMinutes;
 
+  /// Correction-line drill sessions finished today.
+  final int drills;
+
+  /// Times the reset flow was run today.
+  final int resets;
+
   @override
   String get id => dayKey(day);
 
@@ -61,6 +69,8 @@ class DailyRoutine implements Doc {
     DateTime? timerStart,
     DateTime? timerEnd,
     int? timerMinutes,
+    int? drills,
+    int? resets,
   }) =>
       DailyRoutine(
         day: day,
@@ -74,6 +84,8 @@ class DailyRoutine implements Doc {
         timerStart: timerStart ?? this.timerStart,
         timerEnd: timerEnd ?? this.timerEnd,
         timerMinutes: timerMinutes ?? this.timerMinutes,
+        drills: drills ?? this.drills,
+        resets: resets ?? this.resets,
       );
 
   @override
@@ -90,6 +102,8 @@ class DailyRoutine implements Doc {
         'timerStart': timerStart?.millisecondsSinceEpoch,
         'timerEnd': timerEnd?.millisecondsSinceEpoch,
         'timerMinutes': timerMinutes,
+        'drills': drills,
+        'resets': resets,
       };
 
   factory DailyRoutine.fromJson(Map<String, Object?> json) => DailyRoutine(
@@ -106,5 +120,7 @@ class DailyRoutine implements Doc {
         timerStart: json['timerStart'] is num ? readDate(json['timerStart']) : null,
         timerEnd: json['timerEnd'] is num ? readDate(json['timerEnd']) : null,
         timerMinutes: readInt(json['timerMinutes'], 30),
+        drills: readInt(json['drills']),
+        resets: readInt(json['resets']),
       );
 }

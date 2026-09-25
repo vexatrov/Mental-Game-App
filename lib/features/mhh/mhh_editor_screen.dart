@@ -74,6 +74,7 @@ class _MhhEditorScreenState extends ConsumerState<MhhEditorScreen> {
   bool _dirty = false;
 
   final _description = TextEditingController();
+  final _logicLine = TextEditingController();
   final List<_ReasonControllers> _reasons = [];
   ProblemType? _problem;
   MhhStatus _status = MhhStatus.draft;
@@ -103,6 +104,8 @@ class _MhhEditorScreenState extends ConsumerState<MhhEditorScreen> {
     }
     _description.text = mhh.description;
     _description.addListener(_markDirty);
+    _logicLine.text = mhh.logicLine;
+    _logicLine.addListener(_markDirty);
     for (final r in mhh.reasons) {
       _addReasonControllers(r);
     }
@@ -141,6 +144,7 @@ class _MhhEditorScreenState extends ConsumerState<MhhEditorScreen> {
   @override
   void dispose() {
     _description.dispose();
+    _logicLine.dispose();
     for (final r in _reasons) {
       r.dispose();
     }
@@ -156,6 +160,7 @@ class _MhhEditorScreenState extends ConsumerState<MhhEditorScreen> {
       reasons: [for (final r in _reasons) r.toReason()],
       status: _status,
       linkedEntryIds: _linked,
+      logicLine: _logicLine.text.trim(),
     );
     await ref.read(mhhRepoProvider).save(mhh);
     setState(() {
@@ -295,6 +300,37 @@ class _MhhEditorScreenState extends ConsumerState<MhhEditorScreen> {
               }),
               icon: const Icon(Icons.add),
               label: const Text('Add another reason (steps 2–5)'),
+            ),
+            const SectionHeader('Your correction line'),
+            Text(
+              'Boil steps 4 and 5 down to one line in your own words. It is '
+              'what you will say to yourself when this reaction fires, and '
+              'what the drill tests you on.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const Key('mhhLogicLine'),
+              controller: _logicLine,
+              minLines: 2,
+              maxLines: null,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: 'Short and punchy, e.g. "One trade tells me '
+                    'nothing. Take the hit and stay in my system."',
+                prefixIcon: const Icon(Icons.bolt),
+                suffixIcon: IconButton(
+                  tooltip: 'Start from step 4',
+                  icon: const Icon(Icons.content_copy_outlined),
+                  onPressed: () {
+                    final correction = _reasons
+                        .map((r) => r.correction.text.trim())
+                        .firstWhere((c) => c.isNotEmpty, orElse: () => '');
+                    if (correction.isNotEmpty) _logicLine.text = correction;
+                  },
+                ),
+              ),
             ),
             SectionHeader('Linked journal entries',
                 trailing: TextButton.icon(

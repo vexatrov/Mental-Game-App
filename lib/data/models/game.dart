@@ -8,6 +8,22 @@ enum GameLevel {
   const GameLevel(this.label);
   final String label;
   String get letter => name.toUpperCase();
+
+  /// How a mistake made at this level is classed.
+  String get mistakeLabel => switch (this) {
+        a => 'Learning mistake',
+        b => 'Marginal mistake',
+        c => 'Obvious mistake',
+      };
+
+  String get mistakeHint => switch (this) {
+        a => 'Something you couldn\'t have known yet',
+        b => 'A subtle error you\'re still working out',
+        c => 'You knew it was wrong right after',
+      };
+
+  static GameLevel? tryParse(Object? name) =>
+      values.where((l) => l.name == name).firstOrNull;
 }
 
 /// What one level of your game looks like, split into the mental side and

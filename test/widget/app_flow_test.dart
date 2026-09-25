@@ -41,6 +41,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Quick notes to expand (1)'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Urge to move my target'), 200,
+        scrollable: find.byType(Scrollable).first);
     expect(find.text('Urge to move my target'), findsOneWidget);
 
     await tester.tap(find.text('Journal'));

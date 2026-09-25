@@ -204,7 +204,7 @@ class _ItemCard extends ConsumerWidget {
     final actions = ref.read(routineActionsProvider);
     final (String, VoidCallback)? link = switch (item.action) {
       RoutineAction.reviewMaps => ('Open', () => context.push('/maps/review')),
-      RoutineAction.reviewHandHistories => ('Open', () => context.go('/mhh')),
+      RoutineAction.drill => ('Start', () => context.push('/drill')),
       RoutineAction.logSession => (
           sessionId == null ? 'Log' : 'Edit',
           () => context.push(sessionId == null

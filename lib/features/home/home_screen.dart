@@ -64,6 +64,22 @@ class HomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
             child: Text(formatDay(now), style: theme.textTheme.titleMedium),
           ),
+          Card(
+            color: theme.colorScheme.errorContainer,
+            child: ListTile(
+              key: const Key('homeReset'),
+              leading: Icon(Icons.bolt, color: theme.colorScheme.onErrorContainer),
+              title: Text('Something building? Reset',
+                  style: TextStyle(
+                      color: theme.colorScheme.onErrorContainer,
+                      fontWeight: FontWeight.w600)),
+              subtitle: Text('Catch it, break it, correct it. Four quick steps.',
+                  style: TextStyle(color: theme.colorScheme.onErrorContainer)),
+              trailing: Icon(Icons.chevron_right,
+                  color: theme.colorScheme.onErrorContainer),
+              onTap: () => context.push('/reset'),
+            ),
+          ),
           if (maps.isEmpty)
             Card(
               color: theme.colorScheme.primaryContainer,
@@ -76,13 +92,30 @@ class HomeScreen extends ConsumerWidget {
                 onTap: () => context.go('/maps'),
               ),
             ),
-          // Before trading.
-          _RoutineCard(
-            phase: RoutinePhase.warmup,
-            icon: Icons.wb_sunny_outlined,
-            progress: routineProgress(RoutinePhase.warmup, settings, routine,
-                sessionLogged: today != null),
-            highlight: true,
+          // Before and after trading, side by side.
+          Row(
+            children: [
+              Expanded(
+                child: _RoutineCard(
+                  phase: RoutinePhase.warmup,
+                  icon: Icons.wb_sunny_outlined,
+                  progress: routineProgress(
+                      RoutinePhase.warmup, settings, routine,
+                      sessionLogged: today != null),
+                  highlight: true,
+                ),
+              ),
+              Expanded(
+                child: _RoutineCard(
+                  phase: RoutinePhase.cooldown,
+                  icon: Icons.nights_stay_outlined,
+                  progress: routineProgress(
+                      RoutinePhase.cooldown, settings, routine,
+                      sessionLogged: today != null),
+                  highlight: false,
+                ),
+              ),
+            ],
           ),
           if (routine.timerRunning(now)) _TimerBanner(routine: routine, now: now),
           // After trading: rate the session.
@@ -104,14 +137,6 @@ class HomeScreen extends ConsumerWidget {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/game/session?id=${today.id}'),
                   ),
-          ),
-          // After trading.
-          _RoutineCard(
-            phase: RoutinePhase.cooldown,
-            icon: Icons.nights_stay_outlined,
-            progress: routineProgress(RoutinePhase.cooldown, settings, routine,
-                sessionLogged: today != null),
-            highlight: false,
           ),
           Row(
             children: [
@@ -194,28 +219,25 @@ class _RoutineCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: () => context.push('/routine?phase=${phase.name}'),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(complete ? Icons.check_circle : icon,
-                  color: complete ? const Color(0xFF3FAE6A) : null),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(phase.label, style: theme.textTheme.titleMedium),
-                    const SizedBox(height: 6),
-                    LinearProgressIndicator(
-                      value: total == 0 ? 0 : done / total,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ],
-                ),
+              Row(
+                children: [
+                  Icon(complete ? Icons.check_circle : icon,
+                      color: complete ? const Color(0xFF3FAE6A) : null),
+                  const Spacer(),
+                  Text('$done/$total', style: theme.textTheme.labelLarge),
+                ],
               ),
-              const SizedBox(width: 16),
-              Text('$done/$total', style: theme.textTheme.labelLarge),
-              const Icon(Icons.chevron_right),
+              const SizedBox(height: 10),
+              Text(phase.label, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: total == 0 ? 0 : done / total,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ],
           ),
         ),

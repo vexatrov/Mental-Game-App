@@ -53,6 +53,18 @@ CI (`.github/workflows/android.yml`) runs analyze, test and a split-per-ABI rele
   - In the background, `ReminderScheduler` (`lib/services/reminders.dart`) schedules OS notifications. The real implementation, `LocalNotificationScheduler`, is only injected in `main.dart` on Android.
   - Tests and the web use the default `NoopReminderScheduler`.
   - Android needs core library desugaring and the manifest receivers/permissions that `flutter_local_notifications` requires.
+- **Reset flow** (`lib/features/reset/`): the real-time strategy in four steps, each step a page of a non-swipeable `PageView`.
+  - Recognize: pick the problem and your current map level.
+  - Disrupt: breathe, write, stand up or talk.
+  - Correct: shows each `MentalHandHistory.logicLine`.
+  - Execute: shows the Strategic Reminder (`AppSettings.reminderKind` and `reminderText`).
+  - Finishing logs a `JournalEntry` and counts the reset on the day's routine.
+- **Drill** (`lib/features/drill/`): recall practice on correction lines. Each hand history's progress is a `DrillCard` in a Leitner box (`drill_cards` store); higher boxes come back less often.
+- **Automatic backup** (`lib/services/auto_backup.dart`):
+  - On Android the user picks a file once through the system picker, and the app keeps permission to it (the `mental_game/backup` channel in `MainActivity.kt`).
+  - The app rewrites that file when it goes to the background, and only if the data's SHA-1 changed.
+  - It also keeps 7 daily on-device snapshots (`lib/services/snapshots/`).
+  - The target lives in the `meta` store, which is deliberately left out of `Stores.all` so it's never exported.
 - **Backup** (`lib/data/backup_service.dart`): the export is `{format, schemaVersion, exportedAt, stores:{name:[docs]}}`. Import validates the whole file before replacing every store in a single transaction. Bump `schemaVersion` only for incompatible changes.
 - **Domain logic without Flutter widgets** lives in `lib/domain/`:
   - problem/subtype catalog and pattern fields: `problem_types.dart`

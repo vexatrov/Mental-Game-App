@@ -13,7 +13,16 @@ class MhhScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final list = ref.watch(mhhListProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Mental Hand History')),
+      appBar: AppBar(
+        title: const Text('Mental Hand History'),
+        actions: [
+          TextButton.icon(
+            onPressed: () => context.push('/drill'),
+            icon: const Icon(Icons.school_outlined),
+            label: const Text('Drill'),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'mhhFab',
         onPressed: () => context.push('/mhh/edit'),
@@ -97,6 +106,23 @@ class _MhhTile extends StatelessWidget {
                       style: theme.textTheme.labelSmall),
                 ],
               ),
+              if (mhh.logicLine.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.bolt, size: 16, color: theme.colorScheme.primary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(mhh.logicLine,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(fontStyle: FontStyle.italic)),
+                    ),
+                  ],
+                ),
+              ],
               if (mhh.reasons.length > 1) ...[
                 const SizedBox(height: 4),
                 Text('${mhh.reasons.length} reasons',

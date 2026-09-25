@@ -1,5 +1,6 @@
 import '../../domain/problem_types.dart';
 import 'doc.dart';
+import 'game.dart';
 
 /// A note captured while trading, optionally expanded later into a full map
 /// of the pattern around a mistake.
@@ -12,6 +13,7 @@ class JournalEntry implements Doc {
     this.subtype,
     this.note = '',
     this.intensity,
+    this.mistakeType,
     Map<PatternField, String>? fields,
   })  : updatedAt = updatedAt ?? createdAt,
         fields = fields ?? const {};
@@ -26,6 +28,9 @@ class JournalEntry implements Doc {
 
   /// How intense the emotion was, 1–10. Null when not rated.
   final int? intensity;
+
+  /// Which level of your game the mistake came from, if classified.
+  final GameLevel? mistakeType;
   final Map<PatternField, String> fields;
 
   /// A quick note that hasn't been expanded with any pattern details yet.
@@ -48,6 +53,8 @@ class JournalEntry implements Doc {
     String? note,
     int? intensity,
     bool clearIntensity = false,
+    GameLevel? mistakeType,
+    bool clearMistakeType = false,
     Map<PatternField, String>? fields,
   }) =>
       JournalEntry(
@@ -58,6 +65,8 @@ class JournalEntry implements Doc {
         subtype: clearSubtype ? null : subtype ?? this.subtype,
         note: note ?? this.note,
         intensity: clearIntensity ? null : intensity ?? this.intensity,
+        mistakeType:
+            clearMistakeType ? null : mistakeType ?? this.mistakeType,
         fields: fields ?? this.fields,
       );
 
@@ -70,6 +79,7 @@ class JournalEntry implements Doc {
         'subtype': subtype,
         'note': note,
         'intensity': intensity,
+        'mistakeType': mistakeType?.name,
         'fields': {
           for (final e in fields.entries)
             if (e.value.trim().isNotEmpty) e.key.name: e.value,
@@ -86,6 +96,7 @@ class JournalEntry implements Doc {
       subtype: readNullableString(json['subtype']),
       note: readString(json['note']),
       intensity: json['intensity'] is num ? readInt(json['intensity']) : null,
+      mistakeType: GameLevel.tryParse(json['mistakeType']),
       fields: {
         if (rawFields is Map)
           for (final e in rawFields.entries)

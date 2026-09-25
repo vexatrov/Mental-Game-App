@@ -14,9 +14,14 @@ An Android notebook for readers of *The Mental Game of Trading* by Jared Tendler
   - Warm-up: review your maps and corrections, rate the emotion carried over from yesterday, start the check-in timer.
   - Cool-down: score the session, expand notes, write things out, note what improved.
 - **Check-in timer.** A reminder every 15, 30 or 60 minutes during your session, as an Android notification or in-app. Each reminder asks you to scan your state and jot down anything building.
+- **Reset ("something building?").** A four-step screen for the moment you're triggered. You see your map signals, break the momentum (a guided breath, writing, a one-minute stand-up, or talking it out), read your correction lines, and check your Strategic Reminder. Each reset is logged in the journal, and "Call it a day" is always an option.
+- **Drill.** Practice recalling your correction lines. Lines you remember come back less often, and ones you miss come back the next day. It's part of the warm-up.
+- **Mistake tags.** Tag each journal mistake as A (learning), B (marginal) or C (obvious), and filter by tag.
 - **A- to C-game analysis.** Describe each level of your game, keeping the mental side separate from the tactical side. It stays stable for a month, and side notes collect changes for the next revision.
 - **Sessions & Inchworm.** Score each session's decision quality from 1 to 100; scores are banded into A/B/C. You also record how much emotion carried over from earlier sessions. Charts show your monthly bell curve and whether the back end (C-game) and front end (A-game) are moving forward.
-- **Backup.** Everything stays on the device. Export to a JSON file, or share it (e.g. to Google Drive), and restore from it.
+- **Backup.**
+  - Automatic (Android): pick a file location once, for example on Google Drive. The app updates it whenever you leave the app and keeps 7 daily copies on the phone.
+  - Manual: export or share a JSON file and restore from it.
 
 ## Install on your phone
 

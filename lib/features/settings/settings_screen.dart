@@ -10,7 +10,10 @@ import 'package:share_plus/share_plus.dart';
 import '../../data/backup_service.dart';
 import '../../data/models/app_settings.dart';
 import '../../data/providers.dart';
+import '../../services/auto_backup.dart';
+import '../../services/snapshots/snapshot_store.dart';
 import '../../ui/widgets.dart';
+import '../reset/reset_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -58,6 +61,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (e) {
       _snack('Could not share the backup: $e');
     }
+  }
+
+  Future<void> _restoreJson(String json, String source) async {
+    try {
+      final counts = await ref.read(backupServiceProvider).importJson(json);
+      final total = counts.values.fold<int>(0, (a, b) => a + b);
+      _snack('Restored $total records from $source.');
+    } on BackupFormatException catch (e) {
+      _snack(e.message);
+    }
+  }
+
+  Future<void> _restoreSnapshot(SnapshotInfo snap) async {
+    final ok = await confirm(
+      context,
+      title: 'Restore ${formatDay(snap.date)}?',
+      message: 'Everything in the app will be replaced with this daily copy.',
+      confirmLabel: 'Restore',
+    );
+    if (!ok) return;
+    final json = await ref.read(snapshotStoreProvider).read(snap.id);
+    await _restoreJson(json, 'the ${formatDay(snap.date)} copy');
+    setState(() {});
+  }
+
+  Future<void> _chooseAutoBackup() async {
+    try {
+      await ref.read(autoBackupProvider).choose();
+    } catch (e) {
+      _snack('Couldn\'t set up automatic backup: $e');
+    }
+  }
+
+  Future<void> _editReminder(AppSettings settings) async {
+    final result = await showDialog<(ReminderKind, String)>(
+      context: context,
+      builder: (_) => StrategicReminderDialog(settings: settings),
+    );
+    if (result == null) return;
+    await ref.read(settingsRepoProvider).save(settings.copyWith(
+        reminderKind: result.$1, reminderText: result.$2.trim()));
   }
 
   Future<void> _restore() async {
@@ -165,13 +209,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               SizedBox(width: 40, child: Text('${settings.sessionHours} h')),
             ],
           ),
-          const SectionHeader('Backup'),
-          Text(
-            'Your data lives only on this device. Save a backup file regularly, '
-            'for example to Google Drive through Share.',
-            style: theme.textTheme.bodySmall,
+          const SectionHeader('Strategic Reminder'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.checklist),
+              title: Text(settings.reminderKind.label),
+              subtitle: Text(
+                settings.reminderText.isEmpty
+                    ? 'Shown at the end of a reset. Tap to write it.'
+                    : settings.reminderText,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: const Icon(Icons.edit_outlined),
+              onTap: () => _editReminder(settings),
+            ),
           ),
-          const SizedBox(height: 8),
+          const SectionHeader('Automatic backup'),
+          _AutoBackupCard(onChoose: _chooseAutoBackup),
+          _SnapshotList(onRestore: _restoreSnapshot),
+          const SectionHeader('Manual backup'),
           ListTile(
             leading: const Icon(Icons.save_alt),
             title: const Text('Save backup file'),
@@ -198,6 +255,138 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _AutoBackupCard extends ConsumerWidget {
+  const _AutoBackupCard({required this.onChoose});
+
+  final VoidCallback onChoose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final supported = ref.watch(backupTargetProvider).isSupported;
+    final state = ref.watch(autoBackupStateProvider).value;
+
+    if (!supported) {
+      return Text(
+        'Automatic backup is available in the Android app. Here, use the '
+        'manual backup below.',
+        style: theme.textTheme.bodySmall,
+      );
+    }
+    if (state == null) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Pick a place for your backup file once. Choose Google Drive '
+                'in the picker to keep it off your phone. The app then '
+                'updates that file every time you leave it.',
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                key: const Key('chooseAutoBackup'),
+                onPressed: onChoose,
+                icon: const Icon(Icons.cloud_upload_outlined),
+                label: const Text('Choose backup location'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final error = state.lastError;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                error == null ? Icons.cloud_done_outlined : Icons.cloud_off,
+                color: error == null
+                    ? const Color(0xFF3FAE6A)
+                    : theme.colorScheme.error,
+              ),
+              title: Text(state.name),
+              subtitle: Text(
+                error ??
+                    (state.lastBackupAt == null
+                        ? 'Not saved yet'
+                        : 'Last saved ${formatDateTime(state.lastBackupAt!)}'),
+                style: error == null
+                    ? null
+                    : TextStyle(color: theme.colorScheme.error),
+              ),
+            ),
+            Wrap(
+              spacing: 8,
+              children: [
+                FilledButton.tonal(
+                  onPressed: () =>
+                      ref.read(autoBackupProvider).run(force: true),
+                  child: const Text('Back up now'),
+                ),
+                TextButton(
+                  onPressed: onChoose,
+                  child: const Text('Change'),
+                ),
+                TextButton(
+                  onPressed: () => ref.read(autoBackupProvider).turnOff(),
+                  child: const Text('Turn off'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SnapshotList extends ConsumerWidget {
+  const _SnapshotList({required this.onRestore});
+
+  final Future<void> Function(SnapshotInfo) onRestore;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final store = ref.watch(snapshotStoreProvider);
+    if (!store.isSupported) return const SizedBox.shrink();
+    // Re-listed whenever the backup state changes (i.e. after each run).
+    ref.watch(autoBackupStateProvider);
+    return FutureBuilder<List<SnapshotInfo>>(
+      future: store.list(),
+      builder: (context, snap) {
+        final items = snap.data ?? const [];
+        return ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+          leading: const Icon(Icons.history),
+          title: const Text('Daily copies on this phone'),
+          subtitle: Text(items.isEmpty
+              ? 'Made automatically, last 7 days kept'
+              : '${items.length} kept · newest ${formatDay(items.first.date)}'),
+          children: [
+            for (final s in items)
+              ListTile(
+                title: Text(formatDay(s.date)),
+                subtitle: Text('${(s.bytes / 1024).toStringAsFixed(1)} KB'),
+                trailing: TextButton(
+                  onPressed: () => onRestore(s),
+                  child: const Text('Restore'),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

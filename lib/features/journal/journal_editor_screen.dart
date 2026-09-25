@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/models/game.dart';
 import '../../data/models/journal_entry.dart';
 import '../../data/providers.dart';
 import '../../domain/problem_types.dart';
@@ -30,6 +31,7 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
   ProblemType? _problem;
   String? _subtype;
   int? _intensity;
+  GameLevel? _mistakeType;
 
   @override
   void initState() {
@@ -61,6 +63,7 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
       _problem = entry.problem;
       _subtype = entry.subtype;
       _intensity = entry.intensity;
+      _mistakeType = entry.mistakeType;
     });
   }
 
@@ -86,6 +89,8 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
         clearSubtype: _subtype == null,
         intensity: _intensity,
         clearIntensity: _intensity == null,
+        mistakeType: _mistakeType,
+        clearMistakeType: _mistakeType == null,
         fields: {for (final e in _fields.entries) e.key: e.value.text.trim()},
       );
 
@@ -206,6 +211,31 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
                 hint: f.hint,
                 minLines: 1,
               ),
+            Text('What kind of mistake was it?',
+                style: theme.textTheme.labelLarge),
+            const SizedBox(height: 6),
+            RadioGroup<GameLevel>(
+              groupValue: _mistakeType,
+              onChanged: (v) => setState(() {
+                _mistakeType = v;
+                _dirty = true;
+              }),
+              child: Column(
+                children: [
+                  for (final level in GameLevel.values.reversed)
+                    RadioListTile<GameLevel>(
+                      key: Key('mistake_${level.name}'),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      toggleable: true,
+                      value: level,
+                      secondary: BandBadge(level),
+                      title: Text(level.mistakeLabel),
+                      subtitle: Text(level.mistakeHint),
+                    ),
+                ],
+              ),
+            ),
             const SizedBox(height: 8),
             OutlinedButton.icon(
               onPressed: _startMhh,

@@ -15,7 +15,7 @@ enum RoutinePhase {
 enum RoutineAction {
   none,
   reviewMaps,
-  reviewHandHistories,
+  drill,
   carryOver,
   timer,
   logSession,
@@ -61,10 +61,10 @@ const warmupItems = [
     action: RoutineAction.reviewMaps,
   ),
   RoutineItem(
-    id: 'review_corrections',
-    label: 'Reread your hand history corrections',
-    hint: 'Keep the corrected logic fresh before you need it.',
-    action: RoutineAction.reviewHandHistories,
+    id: 'drill',
+    label: 'Drill your correction lines',
+    hint: 'Recall them from memory so they hold up under pressure.',
+    action: RoutineAction.drill,
   ),
   RoutineItem(
     id: 'rehearse',
@@ -135,6 +135,7 @@ bool isItemDone(
   return switch (item.action) {
     RoutineAction.carryOver => routine.carryOver != null,
     RoutineAction.timer => routine.timerStart != null,
+    RoutineAction.drill => routine.drills > 0,
     RoutineAction.logSession => sessionLogged,
     RoutineAction.vent => routine.vent.trim().isNotEmpty,
     RoutineAction.improved => routine.improved.trim().isNotEmpty,
