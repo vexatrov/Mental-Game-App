@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../data/models/emotion_map.dart';
 import '../../data/providers.dart';
 import '../../ui/widgets.dart';
-import 'maps_screen.dart';
 
 class MapEditorScreen extends ConsumerStatefulWidget {
   const MapEditorScreen({super.key, required this.id});
@@ -24,6 +23,8 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
 
   final _mental = <int, TextEditingController>{};
   final _technical = <int, TextEditingController>{};
+  final _ideal = TextEditingController();
+  MapScale _scale = MapScale.worstAtTen;
 
   @override
   void initState() {
@@ -41,6 +42,8 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
     final series =
         (await repo.getAll()).where((m) => m.seriesId == map.seriesId);
     final latest = series.fold<int>(0, (v, m) => m.version > v ? m.version : v);
+    _ideal.text = map.ideal;
+    _ideal.addListener(_markDirty);
     for (var level = 1; level <= EmotionMap.maxLevel; level++) {
       final l = map.levels[level] ?? const MapLevel();
       _mental[level] = TextEditingController(text: l.mental)
@@ -51,6 +54,7 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
     if (!mounted) return;
     setState(() {
       _map = map;
+      _scale = map.scale;
       _isLatest = map.version >= latest;
     });
   }
@@ -61,7 +65,7 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
 
   @override
   void dispose() {
-    for (final c in [..._mental.values, ..._technical.values]) {
+    for (final c in [..._mental.values, ..._technical.values, _ideal]) {
       c.dispose();
     }
     super.dispose();
@@ -69,6 +73,8 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
 
   EmotionMap _build() => _map!.copyWith(
         updatedAt: ref.read(clockProvider)(),
+        scale: _scale,
+        ideal: _ideal.text.trim(),
         levels: {
           for (var level = 1; level <= EmotionMap.maxLevel; level++)
             level: MapLevel(
@@ -106,6 +112,31 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
         _map!.nextVersion(id: newId(), now: ref.read(clockProvider)());
     await ref.read(mapRepoProvider).save(next);
     if (mounted) context.pushReplacement('/maps/edit?id=${next.id}');
+  }
+
+  Future<void> _changeScale() async {
+    final picked = await showDialog<MapScale>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text('How to read the levels'),
+        children: [
+          for (final s in MapScale.values)
+            ListTile(
+              leading: Icon(s == _scale
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_unchecked),
+              title: Text(s.label),
+              onTap: () => Navigator.pop(context, s),
+            ),
+        ],
+      ),
+    );
+    if (picked != null && picked != _scale) {
+      setState(() {
+        _scale = picked;
+        _dirty = true;
+      });
+    }
   }
 
   Future<void> _deleteSeries() async {
@@ -149,15 +180,19 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
             PopupMenuButton<String>(
               onSelected: (v) => switch (v) {
                 'version' => _newVersion(),
+                'scale' => _changeScale(),
                 'history' =>
                   context.push('/maps/history?series=${map.seriesId}'),
                 'delete' => _deleteSeries(),
                 _ => null,
               },
               itemBuilder: (_) => [
-                if (!readOnly)
+                if (!readOnly) ...[
                   const PopupMenuItem(
                       value: 'version', child: Text('Start new version')),
+                  const PopupMenuItem(
+                      value: 'scale', child: Text('Change level scale')),
+                ],
                 const PopupMenuItem(
                     value: 'history', child: Text('Version history')),
                 const PopupMenuItem(
@@ -180,17 +215,31 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
               )
             else
               Text(
-                'Level 1 is the first small sign. Level 10 is completely out of '
-                'control. On each level, describe the mental and emotional side '
-                'and what happens to your trading. Fill in at least '
-                '${EmotionMap.minLevels} levels.',
+                '${_scale.label}. On each level, describe the mental and '
+                'emotional side and what happens to your trading. Fill in at '
+                'least ${EmotionMap.minLevels} levels.',
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
             const SizedBox(height: 12),
-            for (var level = 1; level <= EmotionMap.maxLevel; level++)
+            TextField(
+              key: const Key('mapIdeal'),
+              controller: _ideal,
+              readOnly: readOnly,
+              minLines: 2,
+              maxLines: null,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                labelText: 'Your ideal state',
+                hintText: _idealHint(map),
+                prefixIcon: const Icon(Icons.wb_sunny_outlined),
+              ),
+            ),
+            const SizedBox(height: 16),
+            for (final level in _scale.displayOrder)
               _LevelRow(
                 level: level,
+                scale: _scale,
                 mental: _mental[level]!,
                 technical: _technical[level]!,
                 readOnly: readOnly,
@@ -202,15 +251,26 @@ class _MapEditorScreenState extends ConsumerState<MapEditorScreen> {
   }
 }
 
+String _idealHint(EmotionMap map) => switch (map.scale) {
+      MapScale.idealAtFive =>
+        'Balanced: how you decide, focus and feel when confidence is right',
+      MapScale.bestAtTen =>
+        'At your most disciplined: routine, focus, energy, execution',
+      MapScale.worstAtTen =>
+        'Optional: what trading feels like when this is not a problem',
+    };
+
 class _LevelRow extends StatelessWidget {
   const _LevelRow({
     required this.level,
+    required this.scale,
     required this.mental,
     required this.technical,
     required this.readOnly,
   });
 
   final int level;
+  final MapScale scale;
   final TextEditingController mental;
   final TextEditingController technical;
   final bool readOnly;
@@ -227,7 +287,8 @@ class _LevelRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = levelColor(level);
+    final color = scale.color(level);
+    final tag = scale.tagFor(level);
     final fields = [
       _field('Mental & emotional', mental, 'Mental'),
       _field('Technical', technical, 'Technical'),
@@ -243,14 +304,31 @@ class _LevelRow extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 34,
-              height: 34,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Text('$level',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold)),
+            SizedBox(
+              width: 44,
+              child: Column(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    alignment: Alignment.center,
+                    decoration:
+                        BoxDecoration(color: color, shape: BoxShape.circle),
+                    child: Text('$level',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                  if (tag != null) ...[
+                    const SizedBox(height: 4),
+                    Text(tag,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context)
+                            .textTheme
+                            .labelSmall
+                            ?.copyWith(fontSize: 9, color: color)),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(

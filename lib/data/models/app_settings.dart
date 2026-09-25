@@ -1,17 +1,35 @@
+import '../../domain/routine.dart';
 import 'doc.dart';
 import 'game.dart';
 
 /// User preferences, stored as a single document.
 class AppSettings implements Doc {
-  const AppSettings({this.cMax = 40, this.bMax = 70});
+  const AppSettings({
+    this.cMax = 40,
+    this.bMax = 70,
+    this.checkInMinutes = 30,
+    this.sessionHours = 4,
+    this.customWarmup = const [],
+    this.customCooldown = const [],
+  });
 
   static const docId = 'settings';
+  static const checkInChoices = [15, 30, 60];
 
   /// Scores up to [cMax] are C-game.
   final int cMax;
 
   /// Scores above [cMax] and up to [bMax] are B-game; above is A-game.
   final int bMax;
+
+  /// Minutes between check-in reminders.
+  final int checkInMinutes;
+
+  /// How long the check-in timer runs once started.
+  final int sessionHours;
+
+  final List<RoutineItem> customWarmup;
+  final List<RoutineItem> customCooldown;
 
   @override
   String get id => docId;
@@ -22,15 +40,59 @@ class AppSettings implements Doc {
     return GameLevel.a;
   }
 
-  AppSettings copyWith({int? cMax, int? bMax}) =>
-      AppSettings(cMax: cMax ?? this.cMax, bMax: bMax ?? this.bMax);
+  List<RoutineItem> customItems(RoutinePhase phase) =>
+      phase == RoutinePhase.warmup ? customWarmup : customCooldown;
+
+  List<RoutineItem> routineItems(RoutinePhase phase) =>
+      [...builtInItems(phase), ...customItems(phase)];
+
+  AppSettings copyWith({
+    int? cMax,
+    int? bMax,
+    int? checkInMinutes,
+    int? sessionHours,
+    List<RoutineItem>? customWarmup,
+    List<RoutineItem>? customCooldown,
+  }) =>
+      AppSettings(
+        cMax: cMax ?? this.cMax,
+        bMax: bMax ?? this.bMax,
+        checkInMinutes: checkInMinutes ?? this.checkInMinutes,
+        sessionHours: sessionHours ?? this.sessionHours,
+        customWarmup: customWarmup ?? this.customWarmup,
+        customCooldown: customCooldown ?? this.customCooldown,
+      );
+
+  AppSettings withCustomItems(RoutinePhase phase, List<RoutineItem> items) =>
+      phase == RoutinePhase.warmup
+          ? copyWith(customWarmup: items)
+          : copyWith(customCooldown: items);
 
   @override
-  Map<String, Object?> toJson() => {'id': id, 'cMax': cMax, 'bMax': bMax};
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'cMax': cMax,
+        'bMax': bMax,
+        'checkInMinutes': checkInMinutes,
+        'sessionHours': sessionHours,
+        'customWarmup': [for (final i in customWarmup) i.toJson()],
+        'customCooldown': [for (final i in customCooldown) i.toJson()],
+      };
 
   factory AppSettings.fromJson(Map<String, Object?> json) {
     final cMax = readInt(json['cMax'], 40).clamp(1, 98);
     final bMax = readInt(json['bMax'], 70).clamp(cMax + 1, 99);
-    return AppSettings(cMax: cMax, bMax: bMax);
+    List<RoutineItem> items(Object? raw) => [
+          if (raw is List)
+            for (final r in raw) ?RoutineItem.fromJson(r),
+        ];
+    return AppSettings(
+      cMax: cMax,
+      bMax: bMax,
+      checkInMinutes: readInt(json['checkInMinutes'], 30).clamp(5, 120),
+      sessionHours: readInt(json['sessionHours'], 4).clamp(1, 24),
+      customWarmup: items(json['customWarmup']),
+      customCooldown: items(json['customCooldown']),
+    );
   }
 }

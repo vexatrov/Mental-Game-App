@@ -13,12 +13,25 @@ Future<void> showQuickNoteSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (_) => const _QuickNoteSheet(),
+    builder: (_) => const _QuickNoteSheet(checkIn: false),
+  );
+}
+
+/// The prompt shown when a check-in is due: either all clear, or a quick
+/// note about what's building.
+Future<void> showCheckInSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (_) => const _QuickNoteSheet(checkIn: true),
   );
 }
 
 class _QuickNoteSheet extends ConsumerStatefulWidget {
-  const _QuickNoteSheet();
+  const _QuickNoteSheet({required this.checkIn});
+
+  final bool checkIn;
 
   @override
   ConsumerState<_QuickNoteSheet> createState() => _QuickNoteSheetState();
@@ -45,11 +58,19 @@ class _QuickNoteSheetState extends ConsumerState<_QuickNoteSheet> {
           note: _note.text.trim(),
           intensity: _intensity?.round(),
         ));
+    if (widget.checkIn) {
+      await ref.read(routineActionsProvider).recordCheckIn(flagged: true);
+    }
     if (!mounted) return;
     Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Note saved. Expand it after the session.')),
     );
+  }
+
+  Future<void> _allClear() async {
+    await ref.read(routineActionsProvider).recordCheckIn(flagged: false);
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -62,10 +83,15 @@ class _QuickNoteSheetState extends ConsumerState<_QuickNoteSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Quick note', style: theme.textTheme.titleLarge),
+          Text(widget.checkIn ? 'Check-in' : 'Quick note',
+              style: theme.textTheme.titleLarge),
           const SizedBox(height: 4),
           Text(
-            'Jot what you notice now. Add the details once the session is over.',
+            widget.checkIn
+                ? 'Scan your thoughts, body and urges. Anything from your maps '
+                    'showing up? If so, jot it down.'
+                : 'Jot what you notice now. Add the details once the session '
+                    'is over.',
             style: theme.textTheme.bodySmall
                 ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
@@ -73,7 +99,7 @@ class _QuickNoteSheetState extends ConsumerState<_QuickNoteSheet> {
           TextField(
             key: const Key('quickNoteField'),
             controller: _note,
-            autofocus: true,
+            autofocus: !widget.checkIn,
             minLines: 2,
             maxLines: 6,
             textCapitalization: TextCapitalization.sentences,
@@ -117,6 +143,15 @@ class _QuickNoteSheetState extends ConsumerState<_QuickNoteSheet> {
             icon: const Icon(Icons.check),
             label: const Text('Save note'),
           ),
+          if (widget.checkIn) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('checkInClear'),
+              onPressed: _allClear,
+              icon: const Icon(Icons.sentiment_satisfied_alt),
+              label: const Text('All clear'),
+            ),
+          ],
         ],
       ),
     );

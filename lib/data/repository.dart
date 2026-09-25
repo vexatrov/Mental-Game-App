@@ -11,8 +11,17 @@ abstract final class Stores {
   static const analyses = 'game_analyses';
   static const sessions = 'sessions';
   static const settings = 'settings';
+  static const routines = 'routines';
 
-  static const all = [journal, mhh, maps, analyses, sessions, settings];
+  static const all = [
+    journal,
+    mhh,
+    maps,
+    analyses,
+    sessions,
+    routines,
+    settings,
+  ];
 
   static StoreRef<String, Map<String, Object?>> ref(String name) =>
       stringMapStoreFactory.store(name);

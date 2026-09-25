@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/emotion_map.dart';
 import '../../data/providers.dart';
 import '../../ui/widgets.dart';
-import 'maps_screen.dart';
 
 /// Read-only walk through the current version of every map, meant for the
 /// pre-market warm-up so the early signals are fresh in mind.
@@ -100,8 +99,18 @@ class _ReviewPage extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        Text('Catch it early: the lower levels are where you can still act.',
-            style: theme.textTheme.bodySmall),
+        Text(map.scale.label, style: theme.textTheme.bodySmall),
+        if (map.ideal.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Card(
+            color: theme.colorScheme.primaryContainer,
+            child: ListTile(
+              leading: const Icon(Icons.wb_sunny_outlined),
+              title: const Text('Ideal'),
+              subtitle: Text(map.ideal),
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         for (final e in map.filledEntries)
           Card(
@@ -112,7 +121,7 @@ class _ReviewPage extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 15,
-                    backgroundColor: levelColor(e.key),
+                    backgroundColor: map.scale.color(e.key),
                     child: Text('${e.key}',
                         style: const TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold)),

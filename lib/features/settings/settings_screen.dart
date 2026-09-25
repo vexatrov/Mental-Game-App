@@ -126,6 +126,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             'A: ${range.end.round() + 1}–100',
             textAlign: TextAlign.center,
           ),
+          const SectionHeader('Check-ins'),
+          Text(
+            'How often the check-in timer nudges you to scan your state, and '
+            'how long it runs once started.',
+            style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<int>(
+            segments: [
+              for (final m in AppSettings.checkInChoices)
+                ButtonSegment(value: m, label: Text('$m min')),
+            ],
+            selected: {
+              AppSettings.checkInChoices.contains(settings.checkInMinutes)
+                  ? settings.checkInMinutes
+                  : 30,
+            },
+            onSelectionChanged: (s) => ref
+                .read(settingsRepoProvider)
+                .save(settings.copyWith(checkInMinutes: s.first)),
+          ),
+          Row(
+            children: [
+              const Text('Runs for'),
+              Expanded(
+                child: Slider(
+                  value: settings.sessionHours.toDouble(),
+                  min: 1,
+                  max: 12,
+                  divisions: 11,
+                  label: '${settings.sessionHours} h',
+                  onChanged: (v) => ref
+                      .read(settingsRepoProvider)
+                      .save(settings.copyWith(sessionHours: v.round())),
+                ),
+              ),
+              SizedBox(width: 40, child: Text('${settings.sessionHours} h')),
+            ],
+          ),
           const SectionHeader('Backup'),
           Text(
             'Your data lives only on this device. Save a backup file regularly, '

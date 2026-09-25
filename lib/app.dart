@@ -14,6 +14,9 @@ import 'features/maps/map_review_screen.dart';
 import 'features/maps/maps_screen.dart';
 import 'features/mhh/mhh_editor_screen.dart';
 import 'features/mhh/mhh_screen.dart';
+import 'features/routine/check_in_ticker.dart';
+import 'features/routine/routine_screen.dart';
+import 'domain/routine.dart';
 import 'features/settings/settings_screen.dart';
 
 GoRouter buildRouter() {
@@ -77,6 +80,11 @@ GoRouter buildRouter() {
         builder: (_, _) => const AnalysisEditorScreen(),
       ),
       GoRoute(
+        path: '/routine',
+        builder: (_, s) =>
+            RoutineScreen(phase: RoutinePhase.parse(q(s, 'phase'))),
+      ),
+      GoRoute(
         path: '/settings',
         builder: (_, _) => const SettingsScreen(),
       ),
@@ -133,7 +141,7 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: shell,
+      body: CheckInTicker(child: shell),
       bottomNavigationBar: NavigationBar(
         selectedIndex: shell.currentIndex,
         onDestinationSelected: (i) =>

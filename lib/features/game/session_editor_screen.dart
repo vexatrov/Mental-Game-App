@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../data/models/app_settings.dart';
+import '../../data/models/daily_routine.dart';
 import '../../data/models/game.dart';
 import '../../data/providers.dart';
 import '../../ui/widgets.dart';
@@ -34,11 +35,16 @@ class _SessionEditorScreenState extends ConsumerState<SessionEditorScreen> {
         ? null
         : await ref.read(sessionRepoProvider).get(widget.id!);
     final now = ref.read(clockProvider)();
+    // A new session starts from the carry-over rated in today's warm-up.
+    final warmup = existing == null
+        ? await ref.read(routineRepoProvider).get(dayKey(now))
+        : null;
     final session = existing ??
         TradingSession(
           id: newId(),
           date: DateTime(now.year, now.month, now.day),
           score: 50,
+          carryOver: warmup?.carryOver ?? 0,
         );
     _notes.text = session.notes;
     _notes.addListener(() {

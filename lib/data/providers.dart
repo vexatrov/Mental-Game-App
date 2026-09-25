@@ -3,7 +3,10 @@ import 'package:sembast/sembast.dart';
 import 'package:uuid/uuid.dart';
 
 import 'backup_service.dart';
+import '../domain/routine.dart';
+import '../services/reminders.dart';
 import 'models/app_settings.dart';
+import 'models/daily_routine.dart';
 import 'models/emotion_map.dart';
 import 'models/game.dart';
 import 'models/journal_entry.dart';
@@ -63,6 +66,17 @@ final settingsRepoProvider = Provider((ref) => DocRepository<AppSettings>(
       sortField: 'id',
     ));
 
+final routineRepoProvider = Provider((ref) => DocRepository<DailyRoutine>(
+      ref.watch(databaseProvider),
+      Stores.routines,
+      DailyRoutine.fromJson,
+      sortField: 'day',
+    ));
+
+/// Overridden in `main` with the platform scheduler on Android.
+final reminderSchedulerProvider =
+    Provider<ReminderScheduler>((ref) => const NoopReminderScheduler());
+
 final backupServiceProvider =
     Provider((ref) => BackupService(ref.watch(databaseProvider)));
 
@@ -108,3 +122,88 @@ final settingsProvider = StreamProvider<AppSettings>((ref) => ref
     .watch(settingsRepoProvider)
     .watch(AppSettings.docId)
     .map((s) => s ?? const AppSettings()));
+
+/// Today's routine, or an empty one if nothing was recorded yet.
+final todayRoutineProvider = StreamProvider<DailyRoutine>((ref) {
+  final now = ref.watch(clockProvider)();
+  return ref
+      .watch(routineRepoProvider)
+      .watch(dayKey(now))
+      .map((r) => r ?? DailyRoutine.empty(now));
+});
+
+/// Bumped each time a check-in is due; the app shell listens and prompts.
+class CheckInPrompt extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void trigger() => state++;
+}
+
+final checkInPromptProvider =
+    NotifierProvider<CheckInPrompt, int>(CheckInPrompt.new);
+
+/// Writes to today's routine and drives the check-in timer.
+class RoutineActions {
+  RoutineActions(this.ref);
+
+  final Ref ref;
+
+  DateTime get _now => ref.read(clockProvider)();
+
+  Future<DailyRoutine> _today() async {
+    final now = _now;
+    return await ref.read(routineRepoProvider).get(dayKey(now)) ??
+        DailyRoutine.empty(now);
+  }
+
+  Future<void> _update(DailyRoutine Function(DailyRoutine) change) async =>
+      ref.read(routineRepoProvider).save(change(await _today()));
+
+  Future<void> toggle(RoutinePhase phase, String itemId) => _update((r) {
+        final set = {
+          ...(phase == RoutinePhase.warmup ? r.warmupChecked : r.cooldownChecked),
+        };
+        if (!set.remove(itemId)) set.add(itemId);
+        return phase == RoutinePhase.warmup
+            ? r.copyWith(warmupChecked: set)
+            : r.copyWith(cooldownChecked: set);
+      });
+
+  Future<void> setCarryOver(int value) =>
+      _update((r) => r.copyWith(carryOver: value));
+
+  Future<void> setVent(String text) => _update((r) => r.copyWith(vent: text));
+
+  Future<void> setImproved(String text) =>
+      _update((r) => r.copyWith(improved: text));
+
+  Future<void> recordCheckIn({required bool flagged}) => _update((r) =>
+      r.copyWith(
+        checkIns: r.checkIns + 1,
+        flaggedCheckIns: r.flaggedCheckIns + (flagged ? 1 : 0),
+      ));
+
+  /// Starts check-ins every [minutes] for [hours]. Returns false if the OS
+  /// refused notification permission (the in-app prompt still runs).
+  Future<bool> startTimer({required int minutes, required int hours}) async {
+    final now = _now;
+    final end = now.add(Duration(hours: hours));
+    await _update((r) =>
+        r.copyWith(timerStart: now, timerEnd: end, timerMinutes: minutes));
+    final scheduler = ref.read(reminderSchedulerProvider);
+    final allowed = await scheduler.requestPermission();
+    if (allowed) {
+      await scheduler.schedule(
+          checkInTimes(now, end, Duration(minutes: minutes)));
+    }
+    return allowed;
+  }
+
+  Future<void> stopTimer() async {
+    await _update((r) => r.copyWith(timerEnd: _now));
+    await ref.read(reminderSchedulerProvider).cancelAll();
+  }
+}
+
+final routineActionsProvider = Provider((ref) => RoutineActions(ref));

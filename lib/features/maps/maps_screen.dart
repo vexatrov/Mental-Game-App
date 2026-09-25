@@ -7,22 +7,11 @@ import '../../data/providers.dart';
 import '../../domain/problem_types.dart';
 import '../../ui/widgets.dart';
 
-/// Colour for a severity level, from calm (1) to out of control (10).
-Color levelColor(int level) {
-  const calm = Color(0xFF3FAE6A);
-  const warn = Color(0xFFF2A516);
-  const hot = Color(0xFFE0524D);
-  final t = (level - 1) / 9;
-  return t < 0.5
-      ? Color.lerp(calm, warn, t * 2)!
-      : Color.lerp(warn, hot, (t - 0.5) * 2)!;
-}
-
 class MapsScreen extends ConsumerWidget {
   const MapsScreen({super.key});
 
   Future<void> _create(BuildContext context, WidgetRef ref) async {
-    final choice = await showDialog<(ProblemType, String?)>(
+    final choice = await showDialog<(ProblemType, String?, MapScale)>(
       context: context,
       builder: (_) => const _NewMapDialog(),
     );
@@ -35,6 +24,7 @@ class MapsScreen extends ConsumerWidget {
           createdAt: now,
           problem: choice.$1,
           subtype: choice.$2,
+          scale: choice.$3,
         ));
     if (context.mounted) context.push('/maps/edit?id=$id');
   }
@@ -126,14 +116,14 @@ class _MapTile extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  for (var level = 1; level <= EmotionMap.maxLevel; level++)
+                  for (final level in map.scale.displayOrder.reversed)
                     Expanded(
                       child: Container(
                         height: 8,
                         margin: const EdgeInsets.symmetric(horizontal: 1.5),
                         decoration: BoxDecoration(
                           color: filled.contains(level)
-                              ? levelColor(level)
+                              ? map.scale.color(level)
                               : theme.colorScheme.surfaceContainerHighest,
                           borderRadius: BorderRadius.circular(4),
                         ),
@@ -166,6 +156,7 @@ class _NewMapDialog extends StatefulWidget {
 class _NewMapDialogState extends State<_NewMapDialog> {
   ProblemType _problem = ProblemType.greed;
   String? _subtype;
+  MapScale _scale = MapScale.defaultFor(ProblemType.greed);
 
   @override
   Widget build(BuildContext context) {
@@ -182,6 +173,7 @@ class _NewMapDialogState extends State<_NewMapDialog> {
               onChanged: (p) => setState(() {
                 _problem = p!;
                 _subtype = null;
+                _scale = MapScale.defaultFor(p);
               }),
             ),
             const SizedBox(height: 16),
@@ -189,6 +181,11 @@ class _NewMapDialogState extends State<_NewMapDialog> {
               problem: _problem,
               value: _subtype,
               onChanged: (s) => setState(() => _subtype = s),
+            ),
+            const SizedBox(height: 16),
+            ScalePicker(
+              value: _scale,
+              onChanged: (s) => setState(() => _scale = s),
             ),
           ],
         ),
@@ -198,10 +195,32 @@ class _NewMapDialogState extends State<_NewMapDialog> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel')),
         FilledButton(
-          onPressed: () => Navigator.pop(context, (_problem, _subtype)),
+          onPressed: () =>
+              Navigator.pop(context, (_problem, _subtype, _scale)),
           child: const Text('Create'),
         ),
       ],
+    );
+  }
+}
+
+class ScalePicker extends StatelessWidget {
+  const ScalePicker({super.key, required this.value, required this.onChanged});
+
+  final MapScale value;
+  final ValueChanged<MapScale> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<MapScale>(
+      initialValue: value,
+      isExpanded: true,
+      decoration: const InputDecoration(labelText: 'How to read the levels'),
+      items: [
+        for (final s in MapScale.values)
+          DropdownMenuItem(value: s, child: Text(s.label)),
+      ],
+      onChanged: (s) => onChanged(s!),
     );
   }
 }

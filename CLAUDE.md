@@ -28,6 +28,10 @@ CI (`.github/workflows/android.yml`) runs analyze, test and a split-per-ABI rele
   - Dates are stored as epoch milliseconds.
   - `fromJson` must tolerate missing or unknown values, because backups from older versions are imported as-is.
   - When adding a store, add it to `Stores.all` so backup includes it.
+- **Map scales:** each `EmotionMap` has a `MapScale`, and colours, level order and level tags all come from it.
+  - `worstAtTen` is the default for greed, fear and tilt, and for any map saved before scales existed.
+  - `bestAtTen` is the default for discipline.
+  - `idealAtFive` is the default for confidence.
 - **Versioned documents:**
   - `EmotionMap` revisions are separate documents sharing a `seriesId`. The highest `version` is current (`currentMapsProvider`), and older versions open read-only.
   - `GameAnalysis` works the same way: the newest `createdAt` is current. For 30 days (`lockPeriod`) edits change that version in place; after that, saving creates a new version.
@@ -39,6 +43,16 @@ CI (`.github/workflows/android.yml`) runs analyze, test and a split-per-ABI rele
   - A `StatefulShellRoute.indexedStack` holds the five bottom-nav tabs.
   - Editors are top-level routes pushed over the shell, taking query params (`/journal/edit?id=`, `/mhh/edit?entry=`, `/maps/edit?id=`, …).
   - Editors keep local controllers, save explicitly, and wrap their body in `UnsavedChangesGuard`. `context.pop()` bypasses that guard, so call it only after saving.
+- **Routines and check-ins:**
+  - Each day's warm-up and cool-down is one `DailyRoutine` document, keyed by `dayKey(date)`.
+  - The built-in steps live in `lib/domain/routine.dart`. Custom steps are stored in `AppSettings`.
+  - A step counts as done when ticked by hand or when its action happened (`isItemDone`), for example a session was logged or the vent text is filled.
+  - Writes go through `RoutineActions`.
+- **Check-in timer:**
+  - In the app, `CheckInTicker` (it wraps the shell) runs a Dart `Timer` and bumps `checkInPromptProvider`, which opens the check-in sheet.
+  - In the background, `ReminderScheduler` (`lib/services/reminders.dart`) schedules OS notifications. The real implementation, `LocalNotificationScheduler`, is only injected in `main.dart` on Android.
+  - Tests and the web use the default `NoopReminderScheduler`.
+  - Android needs core library desugaring and the manifest receivers/permissions that `flutter_local_notifications` requires.
 - **Backup** (`lib/data/backup_service.dart`): the export is `{format, schemaVersion, exportedAt, stores:{name:[docs]}}`. Import validates the whole file before replacing every store in a single transaction. Bump `schemaVersion` only for incompatible changes.
 - **Domain logic without Flutter widgets** lives in `lib/domain/`:
   - problem/subtype catalog and pattern fields: `problem_types.dart`

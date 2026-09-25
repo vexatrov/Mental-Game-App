@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:intl/intl.dart';
+
 import '../../data/models/app_settings.dart';
+import '../../data/models/daily_routine.dart';
+import '../../domain/routine.dart';
+import '../routine/routine_screen.dart';
 import '../../data/models/mental_hand_history.dart';
 import '../../data/providers.dart';
 import '../../ui/widgets.dart';
@@ -21,6 +26,8 @@ class HomeScreen extends ConsumerWidget {
     final maps = ref.watch(currentMapsProvider).value ?? const [];
     final mhh = ref.watch(mhhListProvider).value ?? const [];
     final settings = ref.watch(settingsProvider).value ?? const AppSettings();
+    final routine =
+        ref.watch(todayRoutineProvider).value ?? DailyRoutine.empty(now);
 
     final today = sessions.where((s) => isSameDay(s.date, now)).firstOrNull;
     final toExpand = entries.where((e) => e.isQuick).toList();
@@ -57,22 +64,27 @@ class HomeScreen extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
             child: Text(formatDay(now), style: theme.textTheme.titleMedium),
           ),
-          // Before trading: review maps.
-          Card(
-            color: theme.colorScheme.primaryContainer,
-            child: ListTile(
-              leading: const Icon(Icons.wb_sunny_outlined),
-              title: Text(maps.isEmpty
-                  ? 'Map your first emotion'
-                  : 'Pre-market warm-up'),
-              subtitle: Text(maps.isEmpty
-                  ? 'Knowing the early signs is how you catch them in time.'
-                  : 'Review your ${maps.length} map${maps.length == 1 ? '' : 's'} before you trade.'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () =>
-                  maps.isEmpty ? context.go('/maps') : context.push('/maps/review'),
+          if (maps.isEmpty)
+            Card(
+              color: theme.colorScheme.primaryContainer,
+              child: ListTile(
+                leading: const Icon(Icons.stacked_bar_chart),
+                title: const Text('Map your first emotion'),
+                subtitle: const Text(
+                    'Knowing the early signs is how you catch them in time.'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go('/maps'),
+              ),
             ),
+          // Before trading.
+          _RoutineCard(
+            phase: RoutinePhase.warmup,
+            icon: Icons.wb_sunny_outlined,
+            progress: routineProgress(RoutinePhase.warmup, settings, routine,
+                sessionLogged: today != null),
+            highlight: true,
           ),
+          if (routine.timerRunning(now)) _TimerBanner(routine: routine, now: now),
           // After trading: rate the session.
           Card(
             child: today == null
@@ -92,6 +104,14 @@ class HomeScreen extends ConsumerWidget {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => context.push('/game/session?id=${today.id}'),
                   ),
+          ),
+          // After trading.
+          _RoutineCard(
+            phase: RoutinePhase.cooldown,
+            icon: Icons.nights_stay_outlined,
+            progress: routineProgress(RoutinePhase.cooldown, settings, routine,
+                sessionLogged: today != null),
+            highlight: false,
           ),
           Row(
             children: [
@@ -144,6 +164,90 @@ class HomeScreen extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _RoutineCard extends StatelessWidget {
+  const _RoutineCard({
+    required this.phase,
+    required this.icon,
+    required this.progress,
+    required this.highlight,
+  });
+
+  final RoutinePhase phase;
+  final IconData icon;
+  final (int, int) progress;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final (done, total) = progress;
+    final complete = total > 0 && done == total;
+    return Card(
+      color: highlight && !complete ? theme.colorScheme.primaryContainer : null,
+      child: InkWell(
+        key: Key('routineCard_${phase.name}'),
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => context.push('/routine?phase=${phase.name}'),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          child: Row(
+            children: [
+              Icon(complete ? Icons.check_circle : icon,
+                  color: complete ? const Color(0xFF3FAE6A) : null),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(phase.label, style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 6),
+                    LinearProgressIndicator(
+                      value: total == 0 ? 0 : done / total,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              Text('$done/$total', style: theme.textTheme.labelLarge),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimerBanner extends ConsumerWidget {
+  const _TimerBanner({required this.routine, required this.now});
+
+  final DailyRoutine routine;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final next = checkInTimes(routine.timerStart!, routine.timerEnd!,
+            Duration(minutes: routine.timerMinutes))
+        .where((t) => t.isAfter(now))
+        .firstOrNull;
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.timer_outlined),
+        title: Text('Check-ins every ${routine.timerMinutes} min'),
+        subtitle: Text(next == null
+            ? 'No more check-ins today'
+            : 'Next at ${DateFormat.jm().format(next)} · '
+                '${routine.checkIns} done'),
+        trailing: TextButton(
+          onPressed: () => ref.read(routineActionsProvider).stopTimer(),
+          child: const Text('Stop'),
+        ),
       ),
     );
   }
