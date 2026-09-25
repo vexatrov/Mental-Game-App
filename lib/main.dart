@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sembast/sembast.dart';
 
 import 'app.dart';
 import 'data/db/open_db.dart';
 import 'data/providers.dart';
+import 'data/repository.dart';
 import 'services/auto_backup.dart';
 import 'services/backup_target.dart';
 import 'services/reminders.dart';
@@ -15,7 +17,10 @@ Future<void> main() async {
   await configureDateLocale();
   final db = await openAppDatabase();
   final reminders = platformReminderScheduler();
+  final onboarded =
+      await Stores.ref(Stores.meta).record('onboarding').get(db) != null;
   final container = ProviderContainer(overrides: [
+    if (!onboarded) initialLocationProvider.overrideWithValue('/welcome'),
     databaseProvider.overrideWithValue(db),
     reminderSchedulerProvider.overrideWithValue(reminders),
     backupTargetProvider.overrideWithValue(platformBackupTarget()),

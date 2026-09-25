@@ -16,6 +16,7 @@ import 'features/maps/map_review_screen.dart';
 import 'features/maps/maps_screen.dart';
 import 'features/mhh/mhh_editor_screen.dart';
 import 'features/mhh/mhh_screen.dart';
+import 'features/onboarding/onboarding_screen.dart';
 import 'features/reset/reset_screen.dart';
 import 'features/routine/check_in_ticker.dart';
 import 'features/routine/routine_screen.dart';
@@ -23,14 +24,18 @@ import 'domain/routine.dart';
 import 'features/settings/settings_screen.dart';
 import 'services/auto_backup.dart';
 
-GoRouter buildRouter() {
+GoRouter buildRouter({String initialLocation = '/home'}) {
   final rootKey = GlobalKey<NavigatorState>();
   String? q(GoRouterState s, String key) => s.uri.queryParameters[key];
 
   return GoRouter(
     navigatorKey: rootKey,
-    initialLocation: '/home',
+    initialLocation: initialLocation,
     routes: [
+      GoRoute(
+        path: '/welcome',
+        builder: (_, _) => const OnboardingScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => AppShell(shell: shell),
         branches: [
@@ -108,8 +113,12 @@ GoRouter buildRouter() {
   );
 }
 
+/// Overridden in `main` with '/welcome' until onboarding has been seen.
+final initialLocationProvider = Provider<String>((ref) => '/home');
+
 final routerProvider = Provider<GoRouter>((ref) {
-  final router = buildRouter();
+  final router =
+      buildRouter(initialLocation: ref.watch(initialLocationProvider));
   ref.onDispose(router.dispose);
   return router;
 });
