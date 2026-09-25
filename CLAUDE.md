@@ -19,9 +19,20 @@ flutter build apk --release --split-per-abi
 flutter build web --no-web-resources-cdn # CanvasKit bundled; useful for headless UI checks
 ```
 
-CI (`.github/workflows/android.yml`) runs analyze, test and a split-per-ABI release build, then uploads the APKs as the `mental-game-apk` artifact. Release builds are signed with the debug key (sideloading only).
+CI (`.github/workflows/android.yml`) runs analyze and test, then builds split-per-ABI release APKs with `--build-number=<run number>` (the versionCode). It publishes them as a `build-N` GitHub Release, which is the link users install from.
+
+**Signing:** `android/app/build.gradle.kts` signs release builds with the Play upload key when `android/key.properties` exists, and otherwise falls back to the debug key. When the `KEYSTORE_BASE64` and `KEYSTORE_PASSWORD` repository secrets exist, CI writes that file and also builds `app-release.aab` for Google Play. Never commit a keystore or `key.properties`; both are git-ignored.
+
+Play Store material (listing, console answers, launch guide, screenshots) lives in `docs/play-store/`. The in-app About screen links to `docs/privacy-policy.md` on GitHub, so keep that file's path stable.
 
 ## Architecture
+
+- **Branding:** the app is "Trader's Mind" (Android label, `com.vexatrov.tradersmind`). Tendler's tool names are kept deliberately, with credit on the About screen and in onboarding. Don't rebrand his tools, and don't imply the app is endorsed.
+- **Startup** (`lib/main.dart`):
+  - Opens the DB. If that fails, it shows `StartupErrorApp`.
+  - Reads the onboarding flag from the `meta` store and routes to `/welcome` the first time.
+  - Injects the Android-only services (reminders, backup target, snapshots) as provider overrides.
+- **"Today" rolls over:** `todayKeyProvider` is refreshed at midnight (by a timer) and when the app resumes. Anything keyed by the current day should watch it rather than read the clock once.
 
 - **Storage: sembast**, a JSON document DB. Each model is one store, and store names live in `Stores` (`lib/data/repository.dart`). `DocRepository<T extends Doc>` provides typed CRUD and `watchAll()` streams sorted by one field. The DB is opened per platform through a conditional export in `lib/data/db/open_db.dart` (io: `path_provider` file; web: IndexedDB).
 - **Models** (`lib/data/models/`) are hand-written immutable classes with `toJson`/`fromJson` (no codegen).
@@ -53,6 +64,7 @@ CI (`.github/workflows/android.yml`) runs analyze, test and a split-per-ABI rele
   - In the background, `ReminderScheduler` (`lib/services/reminders.dart`) schedules OS notifications. The real implementation, `LocalNotificationScheduler`, is only injected in `main.dart` on Android.
   - Tests and the web use the default `NoopReminderScheduler`.
   - Android needs core library desugaring and the manifest receivers/permissions that `flutter_local_notifications` requires.
+  - The status-bar icon is `drawable/ic_stat_notify` (white on transparent). It is named only from Dart, so `res/raw/keep.xml` stops resource shrinking from stripping it in release builds.
 - **Reset flow** (`lib/features/reset/`): the real-time strategy in four steps, each step a page of a non-swipeable `PageView`.
   - Recognize: pick the problem and your current map level.
   - Disrupt: breathe, write, stand up or talk.
@@ -69,4 +81,5 @@ CI (`.github/workflows/android.yml`) runs analyze, test and a split-per-ABI rele
 - **Domain logic without Flutter widgets** lives in `lib/domain/`:
   - problem/subtype catalog and pattern fields: `problem_types.dart`
   - monthly percentiles, band counts and the KDE curve for the Inchworm charts: `inchworm_stats.dart`
+- **Layout checks:** `test/widget/screen_sweep_test.dart` opens every route with long sample data on a small phone at 1.6× text in dark mode, and again at default size. It fails on any overflow. Add new routes to its list.
 - **Date locale:** `lib/ui/locale.dart` loads intl data and picks the device locale, falling back to `en_US`. Browsers can report locales such as `en-US@posix` that intl rejects.

@@ -1,6 +1,10 @@
-# Mental Game
+# Trader's Mind
 
-An Android notebook for readers of *The Mental Game of Trading* by Jared Tendler. It turns the book's tools into something you use every trading day. Not affiliated with the author or publisher.
+An Android notebook for the mental side of trading. It is built on the tools Jared Tendler created in *The Mental Game of Trading*, and turns them into something you use every trading day. The tools are his, so reading the book first is recommended.
+
+Trader's Mind is an independent app. It is not affiliated with, endorsed by or sponsored by Jared Tendler or his publisher. It is a self-help journal, not therapy, and not financial advice.
+
+No account, no ads, no tracking: everything stays on the phone ([privacy policy](docs/privacy-policy.md)).
 
 ## Features
 
@@ -31,6 +35,15 @@ Open this link on your Android phone and install the file it downloads:
 
 It always points to the newest build. Android will ask you to allow installs from your browser the first time. For older 32-bit phones, use `app-armeabi-v7a-release.apk` from the [latest release](https://github.com/vexatrov/Mental-Game-App/releases/latest) instead.
 
+If Android says the app can't be updated, the new build is signed with a different key. In Settings, tap **Save backup file**, uninstall the app, install the new build, then tap **Restore from backup**.
+
+## Google Play
+
+Everything for the store is in [`docs/play-store/`](docs/play-store/):
+- the launch steps ([LAUNCH.md](docs/play-store/LAUNCH.md))
+- listing text, Play Console answers, graphics and screenshots
+- monetization notes
+
 ## Development
 
 Requires Flutter (stable) and, for APK builds, the Android SDK.
@@ -41,4 +54,7 @@ flutter run                 # on a connected device or emulator
 flutter test
 flutter analyze
 flutter build apk --release --split-per-abi
+flutter build appbundle --release        # the .aab for Google Play
 ```
+
+Release builds are signed with the Play upload key when `android/key.properties` exists (git-ignored). Otherwise they fall back to the debug key. CI writes that file from the `KEYSTORE_BASE64` and `KEYSTORE_PASSWORD` repository secrets.
